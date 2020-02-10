@@ -9,6 +9,7 @@ from pprint import pprint
 from tqdm import tqdm
 import os
 from img_styles import color_palettes
+import matplotlib.pyplot as plt
 
 """
 Let's assume we've got an image that's 1000 x 1000 pixels, and we want to give ourselves 50% extra margin outside the bounds of the image.
@@ -118,7 +119,7 @@ class FlowFieldImageMaker():
 
         return
 
-    def draw_curve(self, x=0, y=0, num_steps = 1000, step_length=.001):
+    def draw_curve(self, x=0, y=0, num_steps = 1000, step_length=.001, mark_start = False):
         step_length = step_length * self.img_width # .1% to .5% of image with
 
         for i in range(0, num_steps):
@@ -126,7 +127,7 @@ class FlowFieldImageMaker():
             if not (y >= 0 and y < self.img_width and x >= 0 and x < self.img_height):
                 continue
 
-            if i == 0:
+            if i == 0 and mark_start:
                 self.line_thickness = self.line_thickness + 10
                 self.draw_vertex(x, y)
                 self.line_thickness = self.line_thickness - 10
@@ -174,7 +175,9 @@ class FlowFieldImageMaker():
         y = 0
         x_adder = self.img_width / num_lines
         y_adder = self.img_height / num_lines
-        sin_adder = self.img_width / (2 * np.pi)
+        sine_adder = (2* np.pi) / self.img_width
+        sine_multiplier = self.img_height / 3
+        test = []
 
         for i in tqdm(range(0, num_lines)):
             # set line color from palette
@@ -188,25 +191,29 @@ class FlowFieldImageMaker():
                 # Make lines of random length
                 num_steps = np.random.randint(50, self.img_height)
 
-            """DRAW CURVE"""
-            self.draw_curve(x, y, num_steps)
-
+            """UPDATE X Y"""
             if style == "random":
                 # Start in random places
                 x = np.random.randint(0, self.img_width)
                 y = np.random.randint(0, self.img_height)
                 
-            """UPDATE X Y"""
             if style == "diag1":
                 # Diagonal from top left to bottom right
                 x += x_adder
                 y += y_adder
 
             if style == "wave":
-                if i == 0:
-                    x = self.img_width / 2
-                y = i * sin_adder
+                # sine wave
+                loc = y * (self.img_width / self.num_cols)
+                x = (self.img_width / 2) + np.sin(loc * sine_adder)*sine_multiplier
+                y += y_adder
+                test.append(x)
 
+            """DRAW CURVE"""
+            self.draw_curve(x, y, num_steps, mark_start=False)
+
+        plt.plot(test, 'o')
+        plt.show()
         return
 
     def draw_and_save_image(self, show=True, save=True):
@@ -261,22 +268,5 @@ if __name__ == '__main__':
     # Maker.set_background_color([255, 255, 255])
     Maker.line_color = [255, 255, 255]
     Maker.populate_field(field_type="sinewave")
-    Maker.draw_many_lines(style="wave")
+    Maker.draw_many_lines(style="wave", color_palette="arctic_sea", num_lines = 300)
     Maker.draw_and_save_image()
-    # x = 500
-    # y = 0
-    # adder = 1
-    # goal = int(Maker.img_width / adder)
-    # for k in range(0, 5):
-    #     x = x + 100
-    #     y = 0
-    #     for i in range(0, goal):
-    #         print("{} / {}".format(i, goal))
-    #         Maker.line_color = [np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255)]
-    #         Maker.draw_many_lines(x = x, y=y, random_start = False, num_lines = 1, random_color=False, num_steps = 1000)
-    #         # Maker.draw_and_save_image(show=False, save=False)
-    #         y += adder
-    # Maker.draw_many_lines(x = x, y=y, random_start = False, num_lines = 1, random_color=False, num_steps = 1000)
-    # Maker.draw_and_save_image(show=True, save=True)
-    # Maker.draw_many_lines(num_lines = 1000, random_color=False, num_steps=1000)
-    # Maker.draw_and_save_image(show=True, save=True)
