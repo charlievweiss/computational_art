@@ -10,12 +10,13 @@ from tqdm import tqdm
 import os
 from img_styles import color_palettes
 import matplotlib.pyplot as plt
+import cv2
 
 """
 Let's assume we've got an image that's 1000 x 1000 pixels, and we want to give ourselves 50% extra margin outside the bounds of the image.
 """
 class FlowFieldImageMaker():
-    def __init__(self, img_width=1000, img_height=1000, res_percent = .01, line_color = [0, 0, 0], line_thickness = 0):
+    def __init__(self, img_width=1000, img_height=1000, res_percent = .01, line_color = [0, 0, 0], line_thickness = 0, background_color=[0,0,0]):
         # Vars for image dimensions
         self.img_width = img_width
         self.img_height = img_height
@@ -37,6 +38,14 @@ class FlowFieldImageMaker():
 
         # Styles
         self.palettes = color_palettes
+        self.background_color = background_color
+        for i in range(0, self.img_height):
+            for j in range(0, self.img_width):
+                self.img[i][j] = background_color
+        # Smooth line thickness
+        
+
+
 
     def set_background_color(self, color=[0,0,0]):
         for i in range(0, self.img_height):
@@ -154,13 +163,41 @@ class FlowFieldImageMaker():
         y = int(y)
         self.img[x][y] = self.line_color
 
+        lower = int(-1 * self.line_thickness/2)
+        upper = int(self.line_thickness/2)
+
         if self.line_thickness:
-            for i in range(0, self.line_thickness):
-                for j in range(0, self.line_thickness):
+            for i in range(lower, upper):
+                for j in range(lower, upper):
                     try:
                         self.img[x+i][y+j] = self.line_color
                     except:
                         continue
+
+    def make_smooth_line(self):
+        thic = Maker.line_thickness
+        circle = np.zeros((thic, thic, 3), dtype=np.uint8)
+
+        col = Maker.background_color
+        col2 = Maker.line_color
+
+        empty_space = int(.25*thic)
+        bottom_thresh = thic - empty_space
+
+        for i in range(0, thic):
+            # populate rows
+            print(i, bottom_thresh)
+            print(i > bottom_thresh)
+            if empty_space > 0 and i < (thic - empty_space): # fill not empty space
+                circle[i][empty_space:-empty_space] = col
+                empty_space -= 1
+            elif i >= bottom_thresh: # bottom rows
+                print("here")
+                empty_space += 1
+                circle[i][empty_space:-empty_space] = col
+            else:
+                circle[i][:] = col
+        return circle
 
     def draw_many_lines(self, style="random", color_palette = "pickle_jar", num_lines = 100, num_steps=1000):
         styles = ["random", "diag1"]
@@ -169,22 +206,29 @@ class FlowFieldImageMaker():
 
         # Pick color
         palette = self.palettes[color_palette]
-        pal_length = len(palette) - 1
+        pal_length = len(palette)
         
         x = 0
         y = 0
         x_adder = self.img_width / num_lines
         y_adder = self.img_height / num_lines
-        sine_adder = (2* np.pi) / self.img_width
-        sine_multiplier = self.img_height / 3
-        test = []
+
+        if style == "wave":
+            sine_adder = (2* np.pi) / self.img_width
+            sine_multiplier = self.img_height / 3
+        if style == "circle":
+            radius = self.img_width / 4
+            start = radius
+            center = [self.img_width / 2, self.img_height / 2]
+            x = start
+            theta = 0
 
         for i in tqdm(range(0, num_lines)):
             # set line color from palette
             if pal_length == 0:
                 self.line_color = [np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255)]
             else:
-                index = i % pal_length
+                index = i % (pal_length - 1)
                 self.line_color = palette[index]
 
             if num_steps == 0:
@@ -209,11 +253,14 @@ class FlowFieldImageMaker():
                 y += y_adder
                 test.append(x)
 
+            if style == "circle":
+                # i acts like theta
+                theta += 2*np.pi/num_lines
+                x = center[0] + radius*np.cos(theta)
+                y = center[1] + radius*np.sin(theta)
+
             """DRAW CURVE"""
             self.draw_curve(x, y, num_steps, mark_start=False)
-
-        plt.plot(test, 'o')
-        plt.show()
         return
 
     def draw_and_save_image(self, show=True, save=True):
@@ -263,10 +310,35 @@ def test_flow_field():
     Maker.draw_and_save_image(save=False)
     return
 
+def test():
+    thic = Maker.line_thickness
+    circle = np.zeros((thic, thic, 3), dtype=np.uint8)
+
+    col = Maker.background_color
+    col2 = Maker.line_color
+
+    empty_space = int(.25*thic)
+    bottom_thresh = thic - empty_space
+
+    for i in range(0, thic):
+        # populate rows
+        print(i, bottom_thresh)
+        print(i > bottom_thresh)
+        if empty_space > 0 and i < (thic - empty_space): # fill not empty space
+            circle[i][empty_space:-empty_space] = col
+            empty_space -= 1
+        elif i >= bottom_thresh: # bottom rows
+            print("here")
+            empty_space += 1
+            circle[i][empty_space:-empty_space] = col
+        else:
+            circle[i][:] = col
+
+    pprint(circle)
+
 if __name__ == '__main__':
-    Maker = FlowFieldImageMaker(img_width=1000, img_height=1000,line_thickness = 1)
-    # Maker.set_background_color([255, 255, 255])
-    Maker.line_color = [255, 255, 255]
-    Maker.populate_field(field_type="sinewave")
-    Maker.draw_many_lines(style="wave", color_palette="arctic_sea", num_lines = 300)
-    Maker.draw_and_save_image()
+    Maker = FlowFieldImageMaker(img_width=1000, img_height=1000,line_thickness = 10, background_color=[255, 255, 255])
+    # Maker.populate_field(field_type="sinewave")
+    # Maker.draw_many_lines(style="circle", color_palette="vivid_dream", num_lines = 300)
+    # Maker.draw_and_save_image()
+    test()
