@@ -217,7 +217,7 @@ class FlowFieldImageMaker():
             sine_adder = (2* np.pi) / self.img_width
             sine_multiplier = self.img_height / 3
         if style == "circle":
-            radius = self.img_width / 4
+            radius = self.img_width / 5
             start = radius
             center = [self.img_width / 2, self.img_height / 2]
             x = start
@@ -251,7 +251,6 @@ class FlowFieldImageMaker():
                 loc = y * (self.img_width / self.num_cols)
                 x = (self.img_width / 2) + np.sin(loc * sine_adder)*sine_multiplier
                 y += y_adder
-                test.append(x)
 
             if style == "circle":
                 # i acts like theta
@@ -310,35 +309,9 @@ def test_flow_field():
     Maker.draw_and_save_image(save=False)
     return
 
-def test():
-    thic = Maker.line_thickness
-    circle = np.zeros((thic, thic, 3), dtype=np.uint8)
-
-    col = Maker.background_color
-    col2 = Maker.line_color
-
-    empty_space = int(.25*thic)
-    bottom_thresh = thic - empty_space
-
-    for i in range(0, thic):
-        # populate rows
-        print(i, bottom_thresh)
-        print(i > bottom_thresh)
-        if empty_space > 0 and i < (thic - empty_space): # fill not empty space
-            circle[i][empty_space:-empty_space] = col
-            empty_space -= 1
-        elif i >= bottom_thresh: # bottom rows
-            print("here")
-            empty_space += 1
-            circle[i][empty_space:-empty_space] = col
-        else:
-            circle[i][:] = col
-
-    pprint(circle)
 
 if __name__ == '__main__':
-    Maker = FlowFieldImageMaker(img_width=1000, img_height=1000,line_thickness = 10, background_color=[255, 255, 255])
-    # Maker.populate_field(field_type="sinewave")
-    # Maker.draw_many_lines(style="circle", color_palette="vivid_dream", num_lines = 300)
-    # Maker.draw_and_save_image()
-    test()
+    Maker = FlowFieldImageMaker(img_width=1000, img_height=1000,line_thickness = 3, background_color=[255, 255, 255])
+    Maker.populate_field(field_type="single_curve")
+    Maker.draw_many_lines(style="circle", color_palette="vivid_dream", num_lines = 100)
+    Maker.draw_and_save_image()
