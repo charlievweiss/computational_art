@@ -10,10 +10,10 @@ import os
 import numpy as np
 
 class MakeSVG():
-    def __init__(self, background = None, height=500, width=500):
+    def __init__(self, background = None, color = "white", height=500, width=500):
         self.dwg = svgwrite.Drawing(height=height, width=width) # 500px x 500 px
         if background:
-            self.dwg.add(self.dwg.rect((0, 0), (width, height), fill='white'))
+            self.dwg.add(self.dwg.rect((0, 0), (width, height), fill=color))
 
     # def draw_temp(self):
     #     dwg = svgwrite.Drawing(height=500, width=500) 
@@ -28,7 +28,7 @@ class MakeSVG():
 
     #     return
 
-    def draw_line(self, points = [], color="red", opacity=1, fill="none", width=1, stroke_linejoin="round", stroke_linecap="round"):
+    def draw_line(self, points = [], color="grey", opacity=1, fill="none", width=1, stroke_linejoin="round", stroke_linecap="round"):
         """
         Takes array of tuples and draws lines
         """
@@ -48,9 +48,10 @@ class MakeSVG():
         Saves svg in either svgs or temp_files path (latter can be deleted.)
         Svg must be saved before it can be viewed
         """
+        num_list = [0]
+        next_num = 0
         if temp:
             # Check for image numbers
-            num_list = [0]
             if os.path.isdir('temp_files'):
                 for filename in os.listdir('temp_files'):
                     filename = filename.replace('image', '')
@@ -64,7 +65,6 @@ class MakeSVG():
             image_path = "temp_files/image" + str(next_num) + ".svg"
         else:
             # Check for image numbers
-            num_list = [0]
             if os.listdir('svgs'):
                 for filename in os.listdir('svgs'):
                     filename = filename.replace('image', '')
