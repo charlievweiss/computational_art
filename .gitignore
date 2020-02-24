@@ -1,3 +1,6 @@
 /flow_fields/images
 /vectors/temp_files
 /vectors/svgs
+/vectors/__pycache__/*
+/flow_fields/__pycache__
+/js_vectors/1d_perlin_images
