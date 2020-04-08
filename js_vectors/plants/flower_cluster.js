@@ -32,10 +32,6 @@ function setup(){
 }
 
 function draw() {
-    var xlb = 0; // width lower bound
-    var xub = WIDTH - xlb; // width upper bound
-    var ylb = 350;
-    var yub = HEIGHT - ylb;
     var x;
     var y;
     var num_petals;
@@ -45,17 +41,24 @@ function draw() {
     var bulge_factor;
     var temp;
 
-    var num_flowers = 30;
+    var min_rad = 50;
+    var max_rad = 90;
+    var min_petals = 5;
+    var max_petals = 15;
+
+    var num_flowers = 5; // 5 for nice small cluster
     var background_likelihood = 100;
     var palette = false;
 
-    var grid_style = "circle";
-    var position_grid =  make_grid(grid_style, num_flowers);
+    var grid_style = "circle"; // circle for nice small cluster
+    var xlb = 300; // width lower bound (300 for small cluster)
+    var ylb = 200;
+    var position_grid =  make_grid(grid_style, num_flowers, xlb, ylb);
     
     for (var i = 0; i < num_flowers; i++) {
         temp = Math.floor(random(0, STYLES.length));
         style = STYLES[temp];
-        console.log(style);
+        // style = "bezier";
 
         // general flower variables
         temp = Math.floor(random(0, position_grid.length));
@@ -64,8 +67,8 @@ function draw() {
         // y = Math.floor(random(ylb, yub));
         x = coord[0];
         y = coord[1];
-        num_petals = Math.floor(random(7, 20));
-        radius = random(10, 60);
+        num_petals = Math.floor(random(min_petals, max_petals));
+        radius = random(min_rad, max_rad);
         width = (random(0, 1))*radius;
         
         push();
@@ -88,19 +91,15 @@ function draw() {
         }
         
         if (style == "simple ellipse") {
-            console.log('simple ellipse');
             simple_ellipses(x, y, num_petals, radius, width);
         }
         else if (style == "hollow circles") {
-            console.log('hollow circles');
             hollow_circles(x, y, num_petals, radius);
         }
         else if (style == "outer_petals") {
-            console.log('outer petals');
             outer_petals(x, y, num_petals, radius);
         }
         else if (style == "bezier") {
-            console.log('bezier');
             width = random(1, radius);
             bulge_point = random(0, 1);
             bulge_factor = random(0, 2);
@@ -112,7 +111,9 @@ function draw() {
             position_grid.splice(index, 1);
         }
     }
-    save('flower_circle.png');
+    var filename = 'flower_cluster_'.concat(grid_style);
+    filename = filename.concat('.png');
+    save(filename);
 }
 
 function simple_ellipses(x, y, num_petals, radius, width) {
@@ -143,12 +144,14 @@ function outer_petals(x, y, num_petals, radius) {
     // fill(255);
     // noFill();
     push();
-    // translate(x, y);
-    ellipse(0, 0, radius, radius);
+    var ratio = random(0, .75);
+    var mid_width = radius * ratio;
+    var petal_space = radius * (1-ratio);
+    ellipse(0, 0, mid_width*2, mid_width*2);
     for (var i = 0; i < num_petals; i++) {
         // modify these numbers for extra fun!
         // x, y, length, width, bulge point, bulge factor
-        bezier_petal(radius/2, 0, radius/2, radius/4, .5, .2);
+        bezier_petal(mid_width, 0, petal_space, petal_space/2, .5, .2);
         rotate(2*PI/num_petals);
     }
     pop();
@@ -194,9 +197,13 @@ function bezier_petal(x, y, length, width, bulge_point, bulge_factor) {
 
 /* HELPER FUNCTIONS FOR GRID POPULATING */
 
-function make_grid(style, num_flowers) {
+function make_grid(style, num_flowers, xlb, ylb) {
+    var xub = WIDTH - xlb; // width upper bound
+    var yub = HEIGHT - ylb;
+
     position_grid = [];
     if (style == "spread") {
+        console.log("spread");
         // iterate through squares of upper and lower bound, pick
         // random point from each one
         var rows = Math.ceil(Math.sqrt(num_flowers));
@@ -220,21 +227,38 @@ function make_grid(style, num_flowers) {
                 position_grid.push([x, y]);
             }
         }
-
-        // TESTING: visualize where spawn points are
-        // for (var i = 0; i < position_grid.length; i++) {
-        //     coord = position_grid[i];
-        //     ellipse(coord[0], coord[1], 30, 30);
-        // }
-        }
-    if (style = "circle") {
+    }
+    else if (style == "circle") {
+        console.log("circle");
         var theta_change = 2*PI / num_flowers;
-        var radius = WIDTH / 3;
+        var radius = (WIDTH-(xlb*2)) / 2;
         for (var i = 0; i < num_flowers; i++) {
             var theta = theta_change * i;
             var x = WIDTH / 2 + (radius * Math.cos(theta));
             var y = HEIGHT / 2 + (radius * Math.sin(theta));
             position_grid.push([x, y]);
+        }
+    }
+    else if (style == "random") {
+        console.log("random");
+        for (var i = 0; i < num_flowers; i++) {
+            x = random(xlb, xub);
+            y = random(ylb, yub);
+            position_grid.push([x, y]);
+        }
+    }
+    else if (style == "even") {
+        console.log("even");
+        var rows = Math.ceil(Math.sqrt(num_flowers));
+        var cols = Math.floor(Math.sqrt(num_flowers));
+        var row_area = HEIGHT/rows;
+        var col_area = WIDTH/cols;
+        for (var i = 0; i < rows; i++){
+            for (var j = 0; j < cols; j++){
+                x = (col_area * j) + (col_area/2);
+                y = (row_area * i) + (row_area/2);
+                position_grid.push([x, y]); 
+            }
         }
     }
     return position_grid;
