@@ -11,6 +11,7 @@ import os
 from img_styles import color_palettes
 import matplotlib.pyplot as plt
 import cv2
+from svgpathtools import svg2paths
 
 """
 Let's assume we've got an image that's 1000 x 1000 pixels, and we want to give ourselves 50% extra margin outside the bounds of the image.
@@ -199,10 +200,10 @@ class FlowFieldImageMaker():
                 circle[i][:] = col
         return circle
 
-    def draw_many_lines(self, style="random", color_palette = "pickle_jar", num_lines = 100, num_steps=1000):
-        styles = ["random", "diag1"]
-        if style not in styles:
-            Exception("I can't draw that style!")
+    def draw_many_lines(self, style="", color_palette = "pickle_jar", num_lines = 100, num_steps=1000, start_points = []):
+        # styles = ["random", "diag1"]
+        # if style not in styles:
+        #     Exception("I can't draw that style!")
 
         # Pick color
         palette = self.palettes[color_palette]
@@ -215,7 +216,7 @@ class FlowFieldImageMaker():
 
         if style == "wave":
             sine_adder = (2* np.pi) / self.img_width
-            sine_multiplier = self.img_height / 3
+            sine_multiplier = self.img_height / 5
         if style == "circle":
             radius = self.img_width / 5
             start = radius
@@ -236,27 +237,35 @@ class FlowFieldImageMaker():
                 num_steps = np.random.randint(50, self.img_height)
 
             """UPDATE X Y"""
-            if style == "random":
+            if not start_points == []:
+                x = start_points[i][0]
+                y = start_points[i][1]
+
+            elif style == "random":
                 # Start in random places
                 x = np.random.randint(0, self.img_width)
                 y = np.random.randint(0, self.img_height)
                 
-            if style == "diag1":
+            elif style == "diag1":
                 # Diagonal from top left to bottom right
                 x += x_adder
                 y += y_adder
 
-            if style == "wave":
+            elif style == "wave":
                 # sine wave
                 loc = y * (self.img_width / self.num_cols)
                 x = (self.img_width / 2) + np.sin(loc * sine_adder)*sine_multiplier
                 y += y_adder
 
-            if style == "circle":
+            elif style == "circle":
                 # i acts like theta
                 theta += 2*np.pi/num_lines
                 x = center[0] + radius*np.cos(theta)
                 y = center[1] + radius*np.sin(theta)
+
+            else:
+                print("I can't draw that!")
+                break
 
             """DRAW CURVE"""
             self.draw_curve(x, y, num_steps, mark_start=False)
@@ -309,9 +318,45 @@ def test_flow_field():
     Maker.draw_and_save_image(save=False)
     return
 
+def svg_to_coords(filename="mountains(6).svg"):
+    points = []
+    paths, attributes = svg2paths(filename)
+    # pprint(attributes)
+    for k, v in enumerate(attributes):
+        d_string = v['d']
+        coords = d_string.split('C')
+        # print(d_string)
+        # print(asdf)
+        if len(coords) > 1:
+            for coord in coords:
+                asdf1 = coord.split()[:2]
+                try:
+                    asdf1 = [int(float((num))) for num in asdf1]
+                except:
+                    continue
+                # print(asdf1)
+                points.append(asdf1)
+    return points
+
 
 if __name__ == '__main__':
-    Maker = FlowFieldImageMaker(img_width=1000, img_height=1000,line_thickness = 3, background_color=[255, 255, 255])
+    filename = "mountains(6).svg"
+    # filename = "test (41).svg"
+    points = svg_to_coords(filename)
+    num_points = 1000
+    iterator = int(len(points) / num_points)
+    if iterator == 0:
+        iterator = 1
+    start_points = points[0::iterator]
+    # start_points = [[20, 20], [40, 40], [60,60]]
+    num_lines = len(start_points)
+    Maker = FlowFieldImageMaker(img_width=1000, 
+                                img_height=1000,
+                                line_thickness = 3, 
+                                background_color=[255, 255, 255])
     Maker.populate_field(field_type="single_curve")
-    Maker.draw_many_lines(style="circle", color_palette="vivid_dream", num_lines = 100)
+    Maker.draw_many_lines(style="wave", 
+                            color_palette="vivid_dream", 
+                            num_lines = num_lines, 
+                            start_points = start_points)
     Maker.draw_and_save_image()
